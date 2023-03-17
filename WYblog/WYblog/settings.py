@@ -197,3 +197,7 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 替换系统的User, 使用自己定义的User
+# 配置信息
+AUTH_USER_MODEL = 'users.User'

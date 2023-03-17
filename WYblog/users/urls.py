@@ -1,5 +1,5 @@
 from django.urls import path
-from users.views import RegisterView, ImageCodeView
+from users.views import RegisterView, ImageCodeView, SmsCodeView
 
 urlpatterns = [
     # 注册
@@ -7,4 +7,7 @@ urlpatterns = [
 
     # 图片验证码
     path('imagecode/', ImageCodeView.as_view(), name='imagecode'),
+
+    # 短信
+    path('smscode/', SmsCodeView.as_view(), name='smscode'),
 ]

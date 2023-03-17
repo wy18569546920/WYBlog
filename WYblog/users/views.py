@@ -1,18 +1,27 @@
+#!/usr/bin/python3
+# coding=gbk
 from django.shortcuts import render
-from django.http.response import HttpResponseBadRequest
+from django.http.response import HttpResponseBadRequest, JsonResponse
 from django.http import HttpResponse
 from libs.captcha.captcha import captcha
 from django_redis import get_redis_connection
 from django.views import View
+from utils.response_code import RETCODE
+from random import randint
+from libs.ronglian_sms_sdk.SendMessage import send_message
+import logging
+
+logger = logging.getLogger('django')
 
 
-# æ³¨å†Œè§†å›¾
+# ×¢²áÊÓÍ¼
 class RegisterView(View):
 
     def get(self, request):
         return render(request, 'register.html')
 
 
+# Í¼ĞÎÑéÖ¤Âë
 class ImageCodeView(View):
 
     def get(self, request):
@@ -20,16 +29,57 @@ class ImageCodeView(View):
         :param request:
         :return:
         """
-        # 1. æ¥å—å‰ç«¯ä¼ çš„uuid
+        # 1. ½ÓÊÜÇ°¶Ë´«µÄuuid
         uuid = request.GET.get('uuid')
-        # 2. åˆ¤æ–­uuidæ˜¯å¦è·å–åˆ°
+        # 2. ÅĞ¶ÏuuidÊÇ·ñ»ñÈ¡µ½
         if uuid is None:
             return HttpResponseBadRequest('not uuid')
-        # 3. é€šè¿‡è°ƒç”¨captchaæ¥ç”Ÿæˆå›¾ç‰‡éªŒè¯ç ï¼ˆå›¾ç‰‡äºŒè¿›åˆ¶å’Œå›¾ç‰‡å†…å®¹ï¼‰
+        # 3. Í¨¹ıµ÷ÓÃcaptchaÀ´Éú³ÉÍ¼Æ¬ÑéÖ¤Âë£¨Í¼Æ¬¶ş½øÖÆºÍÍ¼Æ¬ÄÚÈİ£©
         text, image = captcha.generate_captcha()
-        # 4. å°†å›¾ç‰‡å†…å®¹ä¿å­˜åˆ°redisä¸­
-        #     uuidä½œä¸ºä¸€ä¸ªkey,å›¾ç‰‡å†…å®¹ä½œä¸ºä¸€ä¸ªvalue. åŒæ—¶æ·»åŠ ä¸€ä¸ªè¿‡æœŸæ—¶é—´
-        redis_conn = get_redis_connection('default')  # ä½¿ç”¨redisé…ç½®æ–‡ä»¶ä¸­çš„é»˜è®¤é…ç½®
+        # 4. ½«Í¼Æ¬ÄÚÈİ±£´æµ½redisÖĞ
+        #     uuid×÷ÎªÒ»¸ökey,Í¼Æ¬ÄÚÈİ×÷ÎªÒ»¸övalue. Í¬Ê±Ìí¼ÓÒ»¸ö¹ıÆÚÊ±¼ä
+        redis_conn = get_redis_connection('default')  # Ê¹ÓÃredisÅäÖÃÎÄ¼şÖĞµÄÄ¬ÈÏÅäÖÃ
         redis_conn.setex('img: %s' % uuid, 300, text)
-        # 5. è¿”å›å›¾ç‰‡äºŒè¿›åˆ¶
+        # 5. ·µ»ØÍ¼Æ¬¶ş½øÖÆ
         return HttpResponse(image, content_type='image/jpeg')
+
+
+# ¶ÌĞÅ
+class SmsCodeView(View):
+
+    def get(self, request):
+        """
+        :param request:
+        :return:
+        """
+        # 1. ½ÓÊÜ²ÎÊı
+        mobile = request.GET.get('mobile')
+        image_code = request.GET.get('image_code')
+        uuid = request.GET.get('uuid')
+        # 2. ²ÎÊıÑéÖ¤
+        #     a. ÑéÖ¤²ÎÊıÊÇ·ñÆëÈ«
+
+        if not all([mobile, image_code, uuid]):
+            return JsonResponse({'code': RETCODE.NECESSARYPARAMERR, 'errmsg': "È±ÉÙ²ÎÊı"})
+        #     b. Í¼Æ¬ÑéÖ¤ÂëµÄÑéÖ¤
+        redis_conn = get_redis_connection('default')
+        redis_image_code = redis_conn.get('img: %s' % uuid)
+        if redis_image_code is None:
+            return JsonResponse({'code': RETCODE.IMAGECODEERR, 'errmsg': u'Í¼Æ¬ÑéÖ¤ÂëÒÑ¹ıÆÚ'})
+        #     c. »ñÈ¡µ½Ö®ºó£¬É¾³ıredisÄÚµÄÍ¼Æ¬ÑéÖ¤Âë»º´æ
+        try:
+            redis_conn.delete('img: %s' % uuid)
+        except Exception as e:
+            logger.error(e)
+        #     d. ¶Ô±ÈÍ¼Æ¬ÑéÖ¤Âë  ×¢Òâ£º´óĞ¡Ğ´ÎÊÌâ   redisµÄÊı¾İÊ±bytesËùÒÔĞèÒª×ª»»
+        if redis_image_code.decode().lower() != image_code.lower():
+            return JsonResponse({'code': RETCODE.IMAGECODEERR, 'errmsg': 'Í¼Æ¬ÑéÖ¤Âë´íÎó'})
+        # 3. Éú³É¶ÌĞÅÑéÖ¤Âë
+        sms_code = '%06d' % randint(0, 999999)
+        logger.info(sms_code)
+        # 4. ±£´æ¶ÌĞÅÑéÖ¤Âëµ½redisÖĞ
+        redis_conn.setex('sms: %s' % mobile, 300, sms_code)
+        # 5. ·¢ËÍ¶ÌĞÅ
+        send_message(mobile, ['%s' % sms_code, '5'])
+        # 6. ·µ»ØÏìÓ¦
+        return JsonResponse({'code': RETCODE.OK, 'errmsg': '¶ÌĞÅ·¢ËÍ³É¹¦'})

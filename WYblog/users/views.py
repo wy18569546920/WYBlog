@@ -64,9 +64,19 @@ class RegisterView(View):
         except DatabaseError as e:
             logger.error(e)
             return HttpResponseBadRequest('注册失败')
+
+        # 状态保持
+        from django.contrib.auth import login
+        login(request, user)
+
         # 4. 返回响应跳转到指定页面
-        #     暂时返回一个注册成功的信息
-        return redirect(reverse('home:index'))
+        response = redirect(reverse('home:index'))
+
+        # 设置cookie信息， 以方便首页中用户信息展示的判断和用户信息的展示
+        response.set_cookie('is_login', True)  # 登录状态，会话结束自动过期
+        response.set_cookie('username', user.username, max_age=7 * 24 * 3600)  # 设置用户名有效期一个月
+
+        return response
 
 
 # 图形验证码

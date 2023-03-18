@@ -141,3 +141,51 @@ class SmsCodeView(View):
         send_message(mobile, ['%s' % sms_code, '5'])
         # 6. 返回响应
         return JsonResponse({'code': RETCODE.OK, 'errmsg': '短信发送成功'})
+
+
+# 登录视图
+class LoginView(View):
+
+    def get(self, request):
+        return render(request, 'login.html')
+
+    def post(self, request):
+        """
+        :param request:
+        :return:
+        """
+        # 1. 接受参数
+        mobile = request.POST.get('mobile')
+        password = request.POST.get('password')
+        remember = request.POST.get('remember')
+        # 2. 参数验证
+        #     2.1 验证手机号
+        if not re.match(r'^1[3-9]\d{9}$', mobile):
+            return HttpResponseBadRequest('手机号不符合规则')
+        #     2.2 验证密码是否符合
+        if not re.match(r'^[0-9A-Za-z]{8,20}$', password):
+            return HttpResponseBadRequest('请输入8-20位密码，密码是数字、字母')
+
+        # 3. 用户认证登录
+        from django.contrib.auth import authenticate  # 系统自带的认证方法
+        user = authenticate(mobile=mobile, password=password)  # 默认只对username判断，所以需要到models内自定义一下
+        if user is None:
+            return HttpResponseBadRequest('用户名或密码错误')
+
+        # 4. 状态保持
+        from django.contrib.auth import login
+        login(request, user)
+        response = redirect(reverse('home:index'))
+        # 5. 根据用户选择的是否记住登录状态来进行判断
+        # 6. 为了首页显示需要设置一些cookie
+        if remember != 'on':
+            # 浏览器关闭之后
+            request.session.set_expiry(0)
+            response.set_cookie('is_login', True)
+            response.set_cookie('username', user.username, max_age=14 * 24 * 3600)
+        else:
+            request.session.set_expiry(None)
+            response.set_cookie('is_login', True, max_age=14 * 24 * 3600)
+            response.set_cookie('username', user.username, max_age=14 * 24 * 3600)
+        # 7. 返回响应
+        return response

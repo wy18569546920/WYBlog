@@ -1,5 +1,5 @@
 from django.urls import path
-from users.views import RegisterView, ImageCodeView, SmsCodeView
+from users.views import RegisterView, ImageCodeView, SmsCodeView, LoginView
 
 urlpatterns = [
     # 注册
@@ -10,4 +10,7 @@ urlpatterns = [
 
     # 短信
     path('smscode/', SmsCodeView.as_view(), name='smscode'),
+
+    # 登录
+    path('login/', LoginView.as_view(), name='login'),
 ]

@@ -10,6 +10,9 @@ class User(AbstractUser):
     avatar = models.ImageField(upload_to='avatar/%Y%m%d/', blank=True)  # 头像
     user_desc = models.CharField(max_length=500, blank=True)
 
+    # 修改认证字段为mobile
+    USERNAME_FIELD = 'mobile'
+
     class Meta:
         db_table = 'tb_users'  # 修改表名称
         verbose_name = '用户管理'  # admin 后台显示

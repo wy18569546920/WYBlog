@@ -13,6 +13,8 @@ import logging
 import re
 from users.models import User
 from django.db import DatabaseError
+from django.shortcuts import redirect
+from django.urls import reverse
 
 logger = logging.getLogger('django')
 
@@ -64,7 +66,7 @@ class RegisterView(View):
             return HttpResponseBadRequest('注册失败')
         # 4. 返回响应跳转到指定页面
         #     暂时返回一个注册成功的信息
-        return HttpResponse('注册成功')
+        return redirect(reverse('home:index'))
 
 
 # 图形验证码

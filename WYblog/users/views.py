@@ -10,6 +10,9 @@ from utils.response_code import RETCODE
 from random import randint
 from libs.ronglian_sms_sdk.SendMessage import send_message
 import logging
+import re
+from users.models import User
+from django.db import DatabaseError
 
 logger = logging.getLogger('django')
 
@@ -19,6 +22,49 @@ class RegisterView(View):
 
     def get(self, request):
         return render(request, 'register.html')
+
+    def post(self, request):
+        """
+        :param request:
+        :return:
+        """
+        # 1. 接收数据
+        mobile = request.POST.get('mobile')
+        password = request.POST.get('password')
+        password2 = request.POST.get('password2')
+        smscode = request.POST.get('sms_code')
+        # 2. 验证数据
+        #     2.1 参数是否齐全
+        if not all([mobile, password, password2, smscode]):
+            return HttpResponseBadRequest('缺少必要参数')
+        #     2.2 手机号格式是否正确
+        if not re.match(r'^1[3-9]\d{9}$', mobile):
+            return HttpResponseBadRequest('手机号不符合规则')
+        #     2.3 密码是否符合格式
+        if not re.match(r'^[0-9A-Za-z]{8,20}$', password):
+            return HttpResponseBadRequest('请输入8-20位密码，密码是数字、字母')
+        #     2.4 密码和确认密码要一致
+        if password != password2:
+            return HttpResponseBadRequest('两次密码不一致')
+        #     2.5 短信验证码是否和redis中的一致
+        redis_conn = get_redis_connection('default')
+        redis_sms_code = redis_conn.get('sms: %s' % mobile)
+        if redis_sms_code is None:
+            return HttpResponseBadRequest('短信验证码已过期')
+        if smscode != redis_sms_code.decode():
+            print(smscode)
+            print(redis_sms_code)
+            return HttpResponseBadRequest('短信验证码不一致')
+        # 3. 保存数据信息
+        #    create_user可以使用系统的方法来对密码加密
+        try:
+            user = User.objects.create_user(username=mobile, password=password, mobile=mobile)
+        except DatabaseError as e:
+            logger.error(e)
+            return HttpResponseBadRequest('注册失败')
+        # 4. 返回响应跳转到指定页面
+        #     暂时返回一个注册成功的信息
+        return HttpResponse('注册成功')
 
 
 # 图形验证码

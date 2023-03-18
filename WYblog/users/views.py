@@ -15,11 +15,12 @@ from users.models import User
 from django.db import DatabaseError
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.contrib.auth import logout
 
 logger = logging.getLogger('django')
 
 
-# 注册视图
+# 注册
 class RegisterView(View):
 
     def get(self, request):
@@ -143,7 +144,7 @@ class SmsCodeView(View):
         return JsonResponse({'code': RETCODE.OK, 'errmsg': '短信发送成功'})
 
 
-# 登录视图
+# 登录
 class LoginView(View):
 
     def get(self, request):
@@ -188,4 +189,20 @@ class LoginView(View):
             response.set_cookie('is_login', True, max_age=14 * 24 * 3600)
             response.set_cookie('username', user.username, max_age=14 * 24 * 3600)
         # 7. 返回响应
+        return response
+
+
+# 退出登录
+class LogoutView(View):
+    def get(self, request):
+        """
+        :param request:
+        :return:
+        """
+        # 1. session数据清除
+        logout(request)
+        # 2. 删除部分cookie数据
+        response = redirect(reverse('home:index'))
+        response.delete_cookie('is_login')
+        # 3. 跳转到首页
         return response

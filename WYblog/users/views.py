@@ -16,6 +16,7 @@ from django.db import DatabaseError
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib.auth import logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 logger = logging.getLogger('django')
 
@@ -174,7 +175,14 @@ class LoginView(View):
         # 4. 状态保持
         from django.contrib.auth import login
         login(request, user)
-        response = redirect(reverse('home:index'))
+
+        # 根据next参数进行页面跳转
+        next_page = request.GET.get('next')
+        if next_page:
+            response = redirect(next_page)
+        else:
+            response = redirect(reverse('home:index'))
+
         # 5. 根据用户选择的是否记住登录状态来进行判断
         # 6. 为了首页显示需要设置一些cookie
         if remember != 'on':
@@ -258,4 +266,49 @@ class ForgetPasswordView(View):
         # 6. 进行页面跳转，跳转到登录页面
         response = redirect(reverse('users:login'))
         # 7. 返回响应
+        return response
+
+
+# 个人中心
+# 继承LoginRequiredMixin
+# 如果用户未登录，则会进行默认的跳转
+# 默认跳转链接是/accounts/login/?next=/center/，需要到setting文件添加修改自定义跳转页面url的配置
+class UserCenterView(LoginRequiredMixin, View):
+    def get(self, request):
+        # 获取登录用户的信息
+        user = request.user
+        # 组织用户信息
+        context = {
+            'username': user.username,
+            'mobile': user.mobile,
+            'avatar': user.avatar.url if user.avatar else None,
+            'user_desc': user.user_desc
+        }
+        return render(request, 'center.html', context=context)
+
+    def post(self, request):
+        """
+        :param request:
+        :return:
+        """
+        user = request.user
+        # 1. 接受参数
+        username = request.POST.get('username', user.username)
+        user_desc = request.POST.get('desc', user.user_desc)
+        avatar = request.FILES.get('avatar')
+        # 2. 将参数保存
+        try:
+            user.username = username
+            user.user_desc = user_desc
+            if avatar:
+                user.avatar = avatar
+            user.save()
+        except Exception as e:
+            logger.error(e)
+            return HttpResponseBadRequest('修改失败，请稍后再试')
+        # 3. 更新cookie中的username信息
+        # 4. 刷新当前页面（重定向）
+        response = redirect(reverse('users:center'))
+        response.set_cookie('username', user.username, max_age=14 * 3600 * 24)
+        # 5. 返回响应
         return response

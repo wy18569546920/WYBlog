@@ -201,3 +201,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # 替换系统的User, 使用自己定义的User
 # 配置信息
 AUTH_USER_MODEL = 'users.User'
+
+# 修改系统默认的跳转页面
+LOGIN_URL = '/login/'
+
+# 设置上传的图片，保存到media目录下
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+
+# 设置图片访问的统一路由
+MEDIA_URL = '/media/'

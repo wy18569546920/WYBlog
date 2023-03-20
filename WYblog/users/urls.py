@@ -1,5 +1,6 @@
 from django.urls import path
 from users.views import RegisterView, ImageCodeView, SmsCodeView, LoginView, LogoutView, ForgetPasswordView
+from users.views import UserCenterView
 
 urlpatterns = [
     # 注册
@@ -19,4 +20,12 @@ urlpatterns = [
 
     # 忘记密码
     path('forgetpassword/', ForgetPasswordView.as_view(), name='forgetpassword'),
+
+    # 个人中心
+    path('center/', UserCenterView.as_view(), name='center'),
 ]
+
+# 图片访问的路由
+from django.conf import settings
+from django.conf.urls.static import static
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

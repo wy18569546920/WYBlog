@@ -55,8 +55,6 @@ class RegisterView(View):
         if redis_sms_code is None:
             return HttpResponseBadRequest('短信验证码已过期')
         if smscode != redis_sms_code.decode():
-            print(smscode)
-            print(redis_sms_code)
             return HttpResponseBadRequest('短信验证码不一致')
         # 3. 保存数据信息
         #    create_user可以使用系统的方法来对密码加密
@@ -205,4 +203,59 @@ class LogoutView(View):
         response = redirect(reverse('home:index'))
         response.delete_cookie('is_login')
         # 3. 跳转到首页
+        return response
+
+
+# 忘记密码
+class ForgetPasswordView(View):
+    def get(self, request):
+        return render(request, 'forget_password.html')
+
+    def post(self, request):
+        """
+        :param request:
+        :return:
+        """
+        # 1. 接受数据
+        mobile = request.POST.get('mobile')
+        password = request.POST.get('password')
+        password2 = request.POST.get('password2')
+        smscode = request.POST.get('sms_code')
+        # 2. 验证数据
+        #     2.1 判断参数是否齐全
+        if not all([mobile, password, password2, smscode]):
+            return HttpResponseBadRequest('缺少参数')
+        #     2.2 手机号是否符合规则
+        if not re.match(r'^1[3-9]\d{9}$', mobile):
+            return HttpResponseBadRequest('手机号不符合规则')
+        #     2.3 判断密码是否符合规则
+        if not re.match(r'^[0-9A-Za-z]{8,20}$', password):
+            return HttpResponseBadRequest('请输入8-20位密码，密码是数字、字母')
+        #     2.4 判断两次密码是否一致
+        if password != password2:
+            return HttpResponseBadRequest('两次密码不一致')
+        #     2.5 判断短信验证码是否正确
+        redis_conn = get_redis_connection('default')
+        redis_sms_code = redis_conn.get('sms: %s' % mobile)
+        if redis_sms_code is None:
+            return HttpResponseBadRequest('短信验证码已过期')
+        if smscode != redis_sms_code.decode():
+            return HttpResponseBadRequest('短信验证码不一致')
+        # 3. 根据手机号进行用户信息查询
+        try:
+            user = User.objects.get(mobile=mobile)
+        except User.DoesNotExist:
+            # 4. 如果手机号查询出用户信息进行用户密码的修改
+            try:
+                User.objects.create_user(username=mobile, mobile=mobile, password=password)
+            except Exception as e:
+                logger.error(e)
+                return HttpResponseBadRequest('修改失败，请稍后再试')
+        else:
+            # 5. 如果手机号没有查询出用户信息，则进行新用户的创建
+            user.set_password(password)
+            user.save()
+        # 6. 进行页面跳转，跳转到登录页面
+        response = redirect(reverse('users:login'))
+        # 7. 返回响应
         return response

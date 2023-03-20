@@ -17,6 +17,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
+from home.models import ArticleCategory, Article
 
 logger = logging.getLogger('django')
 
@@ -312,3 +313,51 @@ class UserCenterView(LoginRequiredMixin, View):
         response.set_cookie('username', user.username, max_age=14 * 3600 * 24)
         # 5. 返回响应
         return response
+
+
+# 写博客
+class WriteBlogView(LoginRequiredMixin, View):
+    def get(self, request):
+        # 查询所有分类
+        categories = ArticleCategory.objects.all()
+        context = {
+            'categories': categories
+        }
+        return render(request, 'write_blog.html', context=context)
+
+    def post(self, request):
+        """
+        :param request:
+        :return:
+        """
+        # 1. 接受数据
+        avatar = request.FILES.get('avatar')
+        title = request.POST.get('title')
+        category_id = request.POST.get('category')
+        tags = request.POST.get('tags')
+        sumary = request.POST.get('sumary')
+        content = request.POST.get('content')
+        user = request.user
+        # 2. 验证数据
+        if not all([avatar, title, category_id, tags, sumary, content]):
+            return HttpResponseBadRequest('缺少参数')
+        #   2.1 判断分类id
+        try:
+            category = ArticleCategory.objects.get(id=category_id)
+        except ArticleCategory.DoesNotExist:
+            return HttpResponseBadRequest('没有此分类')
+        # 3. 数据入库
+        try:
+            Article.objects.create(
+                author=user,
+                avatar=avatar,
+                category=category,
+                tags=tags,
+                sumary=sumary,
+                content=content
+            )
+        except Exception as e:
+            logger.error(e)
+            return HttpResponseBadRequest('发布失败，请稍后再试')
+        # 4. 跳转到指定页面
+        return redirect(reverse('home:index'))

@@ -4,7 +4,10 @@ html, body {
 }
 #footer
 {
+    position: absolute;
     height: 60px;
+    bottom: 0px;
+    width: 100%;
 }
 
 /* 分页样式 */

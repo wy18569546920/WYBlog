@@ -6,6 +6,7 @@ from home.models import Article, ArticleCategory
 from django.http.response import HttpResponseBadRequest, HttpResponseNotFound
 from django.core.paginator import Paginator, EmptyPage
 
+
 # Create your views here.
 
 class IndexView(View):

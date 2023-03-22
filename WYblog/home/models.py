@@ -49,3 +49,21 @@ class Article(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Comment(models.Model):
+    """
+    评论
+    """
+    content = models.TextField(verbose_name='评论内容')
+    article = models.ForeignKey(Article, on_delete=models.SET_NULL, null=True, verbose_name='评论的文章')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='评论人')
+    created = models.DateTimeField(auto_now_add=True, verbose_name='评论时间')
+
+    def __str__(self):
+        return self.article.title
+
+    class Meta:
+        db_table = 'tb_comment'
+        verbose_name = '评论管理'
+        verbose_name_plural = verbose_name

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from home.models import ArticleCategory, Article
+from home.models import ArticleCategory, Article, Comment
 
 
 # Register your models here.
@@ -21,3 +21,12 @@ class ArticleAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Article, ArticleAdmin)
+
+
+class CommentAdmin(admin.ModelAdmin):
+    list_display = 'user', 'article', 'created'
+    list_filter = 'created',
+    list_per_page = 20
+
+
+admin.site.register(Comment, CommentAdmin)

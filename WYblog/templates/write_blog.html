@@ -59,7 +59,7 @@
                 <!-- 文章标题图 -->
                 <div class="form-group">
                     <label for="avatar">标题图</label>
-                    <input type="file" class="form-control-file" name="avatar" id="avatar" >
+                    <input type="file" class="form-control-file" name="avatar" id="avatar" required>
                 </div>
 
                 <!-- 文章标题 -->
@@ -67,7 +67,7 @@
                     <!-- 标签 -->
                     <label for="title">文章标题</label>
                     <!-- 文本框 -->
-                    <input type="text" class="form-control" id="title" name="title">
+                    <input type="text" class="form-control" id="title" name="title" required>
                 </div>
 
                 <!-- 文章栏目 -->
@@ -85,21 +85,21 @@
                     <!-- 标签 -->
                     <label for="tags">标签</label>
                     <!-- 文本框 -->
-                    <input type="text" class="form-control col-3" id="tags" name="tags" >
+                    <input type="text" class="form-control col-3" id="tags" name="tags" required>
                 </div>
                 <!-- 文章摘要 -->
                 <div class="form-group">
                     <!-- 标签 -->
                     <label for="sumary">文章摘要</label>
                     <!-- 文本框 -->
-                    <input type="text" class="form-control" id="sumary" name="sumary">
+                    <input type="text" class="form-control" id="sumary" name="sumary" required>
                 </div>
                 <!-- 文章正文 -->
                 <div class="form-group">
                     <label for="body">文章正文</label>
                     <!-- 文本区域 -->
                     <!--<textarea type="text" class="form-control" id="body" name="body" rows="12"></textarea>-->
-                    <textarea cols="40" id="id_body" name="content" rows="10" required data-processed="0" :data-config="data_config" data-external-plugin-resources="[]" data-id="id_body" data-type="ckeditortype">
+                    <textarea cols="40" id="id_body" name="content" rows="10" required data-processed="0" :data-config="data_config" data-external-plugin-resources="[]" data-id="id_body" data-type="ckeditortype" >
                         </textarea>
                 </div>
                 <!-- 提交按钮 -->
